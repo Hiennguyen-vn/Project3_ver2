@@ -7,7 +7,7 @@
 
 ---
 
-## 📋 Tóm tắt (Abstract)
+## Tóm tắt (Abstract)
 
 Repository này trình bày một cải tiến quan trọng cho thuật toán **RL-CMTEA** (Reinforcement Learning - Constrained Multitask Evolutionary Algorithm) thông qua việc tích hợp cơ chế **Domain-Adaptive Selection (DaS)** vào quá trình Knowledge Transfer (KT).
 
@@ -22,17 +22,57 @@ Repository này trình bày một cải tiến quan trọng cho thuật toán **
 
 ---
 
-## 🎯 Động lực nghiên cứu (Motivation)
+## Kiến trúc RL-CMTEA: 5 Thành phần Cốt lõi
 
-### Vấn đề của Random Knowledge Transfer
+Trước khi đi vào cải tiến DaS, cần hiểu rõ kiến trúc của RL-CMTEA gốc gồm 5 thành phần:
 
-Trong thuật toán RL-CMTEA gốc, Knowledge Transfer được thực hiện qua hai bước:
-1. **K-means clustering** (`divK`): Nhóm các cá thể tương đồng
-2. **Random block selection** (`divD`): Chọn ngẫu nhiên các chiều để truyền
+### 1. Dual Population Strategy
 
-Cơ chế này có hai hạn chế chính:
+RL-CMTEA duy trì **2 quần thể** cho mỗi task:
 
-**1. Negative Transfer:**
+**Main Population (EC = 0)**:
+- Chỉ chấp nhận cá thể **feasible** (constraint violation = 0)
+- Mục tiêu: Tối ưu hóa objective function
+- Selection: Feasibility Priority (so sánh CV trước, rồi mới so sánh fitness)
+
+**Auxiliary Population (EC = ε(t))**:
+- Chấp nhận cá thể có constraint violation ≤ ε(t)
+- ε(t) giảm dần theo thời gian (từ lớn → 0)
+- Mục tiêu: Duy trì diversity, tránh premature convergence
+
+**Lý do cần Dual Population**: Bài toán có ràng buộc thường có feasible region rất nhỏ. Nếu chỉ dùng Main Pop → mất diversity quá nhanh.
+
+### 2. Reinforcement Learning cho Operator Selection
+
+**Q-Learning + UCB** để chọn operator tốt nhất:
+
+**4 Operators**:
+1. SBX (Simulated Binary Crossover)
+2. DE/rand/1: `x' = x_r1 + F*(x_r2 - x_r3)`
+3. DE/rand/2: `x' = x_r1 + F*(x_r2 - x_r3) + F*(x_r4 - x_r5)`
+4. DE/best/1: `x' = x_best + F*(x_r1 - x_r2)`
+
+**Q-Learning Update**:
+```python
+Q[s, a] ← Q[s, a] + α * (R + γ * max_a' Q[s, a'] - Q[s, a])
+# R = success_rate (tỷ lệ offspring được chọn vào thế hệ sau)
+```
+
+**UCB Selection** (cân bằng exploitation-exploration):
+```python
+UCB[s, a] = Q[s, a] + sqrt(2 * log(T) / (N[s, a] + ε))
+action = argmax_a UCB[s, a]
+```
+
+### 3. Knowledge Transfer (KT) - Thành phần được DaS cải tiến
+
+**Phiên bản gốc (Random)**:
+1. **Block Encoding**: Chia mỗi cá thể thành blocks có độ dài `divD`
+2. **K-means Clustering**: Nhóm các blocks tương đồng từ tất cả tasks thành `divK` clusters
+3. **DE/rand/1 trong cluster**: Tạo offspring bằng cách kết hợp các blocks trong cùng cluster
+4. **Vấn đề**: Chọn dimensions ngẫu nhiên → **Negative Transfer**
+
+**Ví dụ Negative Transfer**:
 ```
 Task 1: f(x₁, x₂, ..., x₁₀₀) - Chỉ có x₁, x₅, x₇ liên quan đến optimum
 Task 2: g(x₁, x₂, ..., x₁₀₀) - Chỉ có x₂, x₅, x₉ liên quan đến optimum
@@ -40,21 +80,80 @@ Task 2: g(x₁, x₂, ..., x₁₀₀) - Chỉ có x₂, x₅, x₉ liên quan �
 Random KT có thể truyền x₃₄, x₇₈ (nhiễu) → Phá vỡ cấu trúc tốt đang hình thành
 ```
 
-**2. Không tận dụng được cấu trúc tương đồng:**
-- Các tác vụ thường có một số chiều chung quan trọng (ví dụ: x₅ ở trên)
-- Random selection không học được pattern này qua các thế hệ
+### 4. Adaptive divD & divK (Heuristic)
 
-### Tại sao DaS giải quyết được?
+Điều chỉnh số clusters (divK) và kích thước block (divD) theo success flags:
 
-DaS hoạt động như một **Structure Learning Mechanism**:
-- Học ma trận trọng số $W_{src→dst}$ cho mỗi cặp tác vụ
-- Chiều nào giúp sinh ra cá thể con tốt → Tăng trọng số
-- Chiều nào gây nhiễu → Giảm trọng số
-- Kết quả: Chỉ truyền "tri thức tinh túy", loại bỏ nhiễu
+```python
+if all(tasks_failed):
+    divD = random(1, maxD)  # Reset ngẫu nhiên
+    divK = random(minK, maxK)
+elif any(tasks_failed):
+    divD = clip(divD + random(-1, +1), 1, maxD)  # Điều chỉnh nhẹ
+    divK = clip(divK + random(-1, +1), minK, maxK)
+# else: Tất cả thành công → giữ nguyên
+```
+
+**Hạn chế**: Heuristic đơn giản, không học được pattern tốt.
+
+### 5. Epsilon Constraint Handling
+
+Điều chỉnh động ngưỡng constraint violation ε(t):
+
+```python
+# Khởi tạo: ε = top 20% CV trong quần thể
+Ep[t] = percentile(constraint_violations, 80)
+
+# Cập nhật theo tiến trình
+progress = fnceval_calls / max_evals
+if progress < 0.8:  # 80% đầu tiên
+    if feasible_rate < 0.8:
+        # Giảm dần ε để thắt chặt ràng buộc
+        Ep[t] = Ep[t] * (1 - progress/0.8)^2
+    else:
+        # Đã có đủ feasible → nới lỏng để tăng diversity
+        Ep[t] = 1.1 * max(constraint_violations)
+else:  # 20% cuối
+    Ep[t] = 0  # Chỉ chấp nhận feasible
+```
 
 ---
 
-## 🔬 Phương pháp (Methodology)
+## Động lực nghiên cứu: Vấn đề của Random KT
+
+### Tại sao cần cải tiến Knowledge Transfer?
+
+Trong 5 thành phần trên, **Knowledge Transfer** là nơi có tiềm năng cải tiến lớn nhất:
+
+**Vấn đề 1: Negative Transfer**
+- Random selection không phân biệt được chiều nào quan trọng, chiều nào là nhiễu
+- Xác suất chọn chiều xấu = constant: `P(bad dim) = (D - D*) / D`
+
+**Vấn đề 2: Không học được cấu trúc**
+- Các tasks thường có một số chiều chung quan trọng
+- Random selection không tận dụng được thông tin này qua các thế hệ
+
+### Giải pháp: Domain-Adaptive Selection (DaS)
+
+DaS thay thế random selection bằng **Structure Learning Mechanism**:
+
+```python
+# Thay vì:
+selected_dims = random.choice(D, divD)  # Uniform random
+
+# DaS học trọng số:
+weights = learn_from_history()  # [0.01, 0.01, ..., 0.40, ..., 0.30, ...]
+selected_dims = weighted_choice(D, divD, p=weights)  # Adaptive
+```
+
+**Kết quả**:
+- Chiều tốt (x₅, x₇) có trọng số cao → Được chọn thường xuyên
+- Chiều nhiễu (x₃₄, x₇₈) có trọng số thấp → Hiếm khi được chọn
+- Xác suất chọn chiều xấu giảm theo mũ: `P(bad dim) ∝ exp(-η * t * |R|)`
+
+---
+
+## Phương pháp DaS (Methodology)
 
 ### 1. Kiến trúc tổng quan
 
@@ -134,7 +233,7 @@ DaS có khả năng chống nhiễu tốt hơn random selection vì:
 
 ---
 
-## 📊 Kết quả thực nghiệm (Experimental Results)
+## Kết quả thực nghiệm (Experimental Results)
 
 ### Setup
 - **Benchmark:** CMT1-CMT9 (Constrained Multitask Test Suite)
@@ -205,7 +304,7 @@ CMT4 có constraint phức tạp với strong variable interaction.
 
 ---
 
-## ⚠️ Failure Mode Analysis
+## Failure Mode Analysis
 
 DaS không phải là "silver bullet". Chúng tôi phân tích 3 trường hợp thất bại:
 
@@ -237,7 +336,7 @@ DaS không phải là "silver bullet". Chúng tôi phân tích 3 trường hợp
 
 ---
 
-## 🚀 Hướng phát triển (Future Work)
+## Hướng phát triển (Future Work)
 
 ### DaS v2: Entropy-Regularized Adaptive Selection
 ```python
@@ -256,7 +355,7 @@ W[i] ← α * W[i] + (1-α) * 1.0  # α = 0.95
 
 ---
 
-## 📁 Cấu trúc Repository
+## Cấu trúc Repository
 
 ```
 .
@@ -271,7 +370,7 @@ W[i] ← α * W[i] + (1-α) * 1.0  # α = 0.95
 
 ---
 
-## 📚 Trích dẫn (Citation)
+## Trích dẫn (Citation)
 
 Nếu bạn sử dụng code này trong nghiên cứu, vui lòng trích dẫn:
 
@@ -286,13 +385,13 @@ Nếu bạn sử dụng code này trong nghiên cứu, vui lòng trích dẫn:
 
 ---
 
-## 📄 License
+## License
 
 MIT License - See [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Original RL-CMTEA algorithm from [Paper Reference]
 - CMT benchmark suite
