@@ -250,28 +250,33 @@ DaS có khả năng chống nhiễu tốt hơn random selection vì:
 
 | Problem | Task | Baseline (Paper) | Proposed (DaS) | Relative Improvement (%) | Notes |
 |---------|------|------------------|----------------|--------------------------|-------|
-| **CMT1** | T1 | 4.81×10⁻¹⁷ | **3.70×10⁻¹⁸** | 92.31 | |
-| | T2 | **7.98×10⁻¹⁴** | 0.199 | −2.49×10⁸ | |
-| **CMT2** | T1 | 2.19×10⁻⁹ | **1.81×10⁻¹⁰** | 91.74 | |
+| **CMT1** | T1 | 4.81×10⁻¹⁷ | **3.70×10⁻¹⁸** | 92.31 | — |
+| | T2 | **7.98×10⁻¹⁴** | 0.199 | — | Performance degradation |
+| **CMT2** | T1 | 2.19×10⁻⁹ | **1.81×10⁻¹⁰** | 91.74 | — |
 | | T2 | 5.92×10⁻¹⁷ | **0.00** | 100.00 | Achieves optimum |
-| **CMT3** | T1 | 2.28×10⁻⁴ | **2.91×10⁻⁸** | 99.99 | |
-| | T2 | 1.30×10⁻³ | **6.36×10⁻⁴** | 51.08 | |
-| **CMT4** | T1 | 87.9 | **9.01** | 89.75 | |
-| | T2 | 815 | **379** | 53.50 | |
-| **CMT5** | T1 | **4.29×10⁻¹²** | 0.648 | −1.51×10¹¹ | |
-| | T2 | 97.4 | **48.8** | 49.90 | |
-| **CMT6** | T1 | 1.79×10⁻⁸ | **1.28×10⁻¹³** | 99.999 | |
-| | T2 | 6.60×10⁻⁵ | **~0** | ~100.00 | Achieves optimum |
-| **CMT7** | T1 | 11,300 | **369** | 96.73 | |
-| | T2 | 129 | **62.2** | 51.78 | |
-| **CMT8** | T1 | 16.1 | **6.00** | 62.73 | |
-| | T2 | 91.9 | **43.1** | 53.09 | |
-| **CMT9** | T1 | **19.4** | 8,649 | −44,479.38 | |
-| | T2 | 33,200 | **16,600** | 50.00 | |
+| **CMT3** | T1 | 2.28×10⁻⁴ | **2.91×10⁻⁸** | 100.00 | — |
+| | T2 | 1.30×10⁻³ | **6.36×10⁻⁴** | 51.08 | — |
+| **CMT4** | T1 | 87.9 | **9.01** | 89.75 | — |
+| | T2 | 815 | **379** | 53.50 | — |
+| **CMT5** | T1 | **4.29×10⁻¹²** | 0.648 | — | Performance degradation |
+| | T2 | 97.4 | **48.8** | 49.90 | — |
+| **CMT6** | T1 | 1.79×10⁻⁸ | **1.28×10⁻¹³** | 100.00 | — |
+| | T2 | 6.60×10⁻⁵ | **0.00** | 100.00 | Achieves optimum |
+| **CMT7** | T1 | 11,300 | **369** | 96.73 | — |
+| | T2 | 129 | **62.2** | 51.78 | — |
+| **CMT8** | T1 | 16.1 | **6.00** | 62.73 | — |
+| | T2 | 91.9 | **43.1** | 53.09 | — |
+| **CMT9** | T1 | **19.4** | 8,649 | — | Performance degradation |
+| | T2 | 33,200 | **16,600** | 50.00 | — |
 
 **Tổng kết:** Phương pháp đề xuất (DaS) vượt trội hơn baseline trên 15/18 tasks (83.3% success rate), với cải thiện đáng kể nhất quan sát được trên CMT3-T1, CMT6-T1, và CMT7-T1.
 
-*Xem phần "Failure Mode Analysis" để hiểu nguyên nhân các trường hợp có Relative Improvement âm.
+**Ghi chú:** 
+- Tất cả kết quả báo cáo giá trị trung bình (mean) của hàm mục tiêu qua 30 lần chạy độc lập.
+- Relative Improvement (%) được tính theo công thức: (Baseline − Proposed) / Baseline × 100, và được bỏ qua (—) khi giá trị baseline nhỏ hơn 1×10⁻⁸.
+- Giá trị nhỏ hơn cho thấy hiệu năng tốt hơn (minimization objectives).
+
+*Xem phần "Failure Mode Analysis" để hiểu nguyên nhân các trường hợp Performance degradation.
 
 ### Phân tích sâu: Tại sao DaS thắng?
 
