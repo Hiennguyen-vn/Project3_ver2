@@ -1,7 +1,5 @@
 # Domain-Adaptive Selection for Constrained Multitask Evolutionary Optimization
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
 > **Cải tiến thuật toán RL-CMTEA thông qua cơ chế Domain-Adaptive Selection (DaS) cho Knowledge Transfer**
 
@@ -377,27 +375,16 @@ W[i] ← α * W[i] + (1-α) * 1.0  # α = 0.95
 
 ## Trích dẫn (Citation)
 
-Nếu bạn sử dụng code này trong nghiên cứu, vui lòng trích dẫn:
-
-```bibtex
-@misc{das_rlcmtea2024,
-  title={Domain-Adaptive Selection for Constrained Multitask Evolutionary Optimization},
-  author={Your Name},
-  year={2024},
-  note={Research Implementation}
-}
-```
 
 ---
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) file for details.
 
 ---
 
 ## Acknowledgments
 
-- Original RL-CMTEA algorithm from [Paper Reference]
+- Original RL-CMTEA algorithm from RL-CMTEA paper
 - CMT benchmark suite
 - Inspiration from Domain-Adaptive Selection literature
